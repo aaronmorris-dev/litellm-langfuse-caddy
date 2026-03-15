@@ -371,7 +371,7 @@ source scripts/gateway-env.sh
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Virtual Key: alias="claude", tags=["claude"], user_id="aaron" │
+│  Virtual Key: alias="claude", tags=["claude"], user_id="alice" │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
@@ -391,7 +391,7 @@ Create virtual keys in [LiteLLM Admin](http://localhost:4000/ui) with:
 | Field     | Example                | Langfuse Result          |
 | --------- | ---------------------- | ------------------------ |
 | Key Alias | `claude`               | Trace name: `claude`     |
-| User ID   | `aaron`                | Trace userId: `aaron`    |
+| User ID   | `alice`                | Trace userId: `alice`    |
 | Metadata  | `{"tags": ["claude"]}` | Trace tags: `["claude"]` |
 
 The enrichment hook auto-generates **daily sessions** (`claude-2026-03-14`) grouping all traces from the same tool on the same day. Clients can override with a `langfuse_session_id` header.
