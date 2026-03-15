@@ -131,6 +131,7 @@ flowchart TD
             CH[("ClickHouse 26")]
             Redis[("Redis 7.4")]
             MinIO[("MinIO")]
+            PG ~~~ CH ~~~ Redis ~~~ MinIO
         end
     end
 
