@@ -1,6 +1,6 @@
 <div align="center">
 
-<h1>orbstack-litellm-langfuse-stack</h1>
+<h1>litellm-langfuse-caddy</h1>
 
 <p><strong>Production-ready local AI gateway with full observability</strong></p>
 
@@ -28,8 +28,8 @@
 ## Quick Start
 
 ```bash
-git clone https://github.com/aaronmorris-dev/orbstack-litellm-langfuse-stack.git
-cd orbstack-litellm-langfuse-stack
+git clone https://github.com/aaronmorris-dev/litellm-langfuse-caddy.git
+cd litellm-langfuse-caddy
 
 cp .env.example .env
 cp litellm/config.example.yaml litellm/config.yaml
@@ -482,7 +482,7 @@ Every service in the stack is configured with defense-in-depth:
 
 ## Prerequisites
 
-- [OrbStack](https://orbstack.dev/) (recommended) or [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/), [OrbStack](https://orbstack.dev/), or any Docker-compatible runtime
 - ~4 GB RAM available for Docker
 - Credentials for at least one LLM provider
 
