@@ -2,8 +2,8 @@
 # Source this file to set up shell environment for gateway access.
 # Usage: source scripts/gateway-env.sh
 #
-# Sets ANTHROPIC_BASE_URL, OPENAI_BASE_URL, and API keys so that
-# CLI tools (Claude Code, OpenAI SDK, etc.) route through LiteLLM.
+# Sets ANTHROPIC_BASE_URL, OPENAI_BASE_URL, OPENROUTER_BASE_URL, and API keys
+# so that CLI tools (Claude Code, OpenAI SDK, OpenRouter, etc.) route through LiteLLM.
 
 _GW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -25,5 +25,7 @@ export ANTHROPIC_BASE_URL="http://localhost:4000"
 export ANTHROPIC_API_KEY="${LITELLM_KEY}"
 export OPENAI_BASE_URL="http://localhost:4000/v1"
 export OPENAI_API_KEY="${LITELLM_KEY}"
+export OPENROUTER_BASE_URL="http://localhost:4000/v1"
+export OPENROUTER_API_KEY="${LITELLM_KEY}"
 
 unset _GW_DIR

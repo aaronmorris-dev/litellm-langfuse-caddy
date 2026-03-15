@@ -1,42 +1,54 @@
-# Transparent LLM Routing
+# Transparent Routing: OpenRouter → LiteLLM
 
-Route any OpenAI or Anthropic SDK-compatible tool through the LiteLLM gateway without modifying the tool itself.
+Redirect tools that normally call [OpenRouter](https://openrouter.ai) to your local LiteLLM proxy instead.
+
+## Why
+
+OpenRouter and LiteLLM serve the same role: a unified API that routes LLM requests to multiple providers (Anthropic, Google, OpenAI, etc.) through a single endpoint. LiteLLM runs locally with full observability via Langfuse — so any tool configured for OpenRouter can be transparently redirected to LiteLLM by overriding the environment variables it checks.
+
+## Environment Variable Mapping
+
+| Variable              | OpenRouter Default             | LiteLLM Replacement        |
+| --------------------- | ------------------------------ | -------------------------- |
+| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | `http://localhost:4000/v1` |
+| `OPENROUTER_API_KEY`  | OpenRouter API key             | LiteLLM virtual key        |
+| `OPENAI_BASE_URL`     | `https://api.openai.com/v1`    | `http://localhost:4000/v1` |
+| `OPENAI_API_KEY`      | OpenAI API key                 | LiteLLM virtual key        |
+| `ANTHROPIC_BASE_URL`  | `https://api.anthropic.com`    | `http://localhost:4000`    |
+| `ANTHROPIC_API_KEY`   | Anthropic API key              | LiteLLM virtual key        |
+
+Most tools that talk to OpenRouter use the OpenAI SDK under the hood, so setting `OPENAI_BASE_URL` + `OPENAI_API_KEY` is often sufficient. The `OPENROUTER_*` vars cover tools that check for OpenRouter-specific configuration first.
 
 ## Quick Setup
 
-Source the gateway environment script in your terminal:
+Source the gateway environment script:
 
 ```bash
 source scripts/gateway-env.sh
 ```
 
-This sets:
+This sets all six variables above, pointing them at your local LiteLLM instance with a virtual key derived from `LITELLM_KEY` (or `LITELLM_MASTER_KEY` as fallback).
 
-| Variable             | Value                      | Used By                    |
-| -------------------- | -------------------------- | -------------------------- |
-| `ANTHROPIC_BASE_URL` | `http://localhost:4000`    | Claude Code, Anthropic SDK |
-| `ANTHROPIC_API_KEY`  | Your LiteLLM virtual key   | Claude Code, Anthropic SDK |
-| `OPENAI_BASE_URL`    | `http://localhost:4000/v1` | Codex, OpenAI SDK, Cursor  |
-| `OPENAI_API_KEY`     | Your LiteLLM virtual key   | Codex, OpenAI SDK, Cursor  |
-
-## Permanent Setup
+## Permanent Shell Profile Setup
 
 Add to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
-# LiteLLM Gateway
-export ANTHROPIC_BASE_URL="http://localhost:4000"
-export ANTHROPIC_API_KEY="sk-your-litellm-virtual-key"
+# LiteLLM Gateway — redirect OpenRouter, OpenAI, and Anthropic traffic
+export OPENROUTER_BASE_URL="http://localhost:4000/v1"
+export OPENROUTER_API_KEY="sk-your-litellm-virtual-key"
 export OPENAI_BASE_URL="http://localhost:4000/v1"
 export OPENAI_API_KEY="sk-your-litellm-virtual-key"
+export ANTHROPIC_BASE_URL="http://localhost:4000"
+export ANTHROPIC_API_KEY="sk-your-litellm-virtual-key"
 ```
 
-Or source the gateway script automatically:
+Or auto-source the gateway script:
 
 ```bash
 # LiteLLM Gateway (auto-source)
-[[ -f ~/path/to/litellm-langfuse-caddy/scripts/gateway-env.sh ]] && \
-  source ~/path/to/litellm-langfuse-caddy/scripts/gateway-env.sh
+[[ -f ~/.config/ai-gateway/scripts/gateway-env.sh ]] && \
+  source ~/.config/ai-gateway/scripts/gateway-env.sh
 ```
 
 ## Per-Tool Virtual Keys
@@ -48,16 +60,18 @@ For per-tool attribution in Langfuse, create separate virtual keys in the [LiteL
 export ANTHROPIC_BASE_URL="http://localhost:4000"
 export ANTHROPIC_API_KEY="sk-claude-code-key"
 
-# Codex
+# Codex / OpenAI SDK tools
 export OPENAI_BASE_URL="http://localhost:4000/v1"
 export OPENAI_API_KEY="sk-codex-key"
+
+# OpenRouter-compatible tools
+export OPENROUTER_BASE_URL="http://localhost:4000/v1"
+export OPENROUTER_API_KEY="sk-openrouter-tool-key"
 ```
 
-Each virtual key should have a descriptive alias (e.g., `claude-code`, `codex`) so the trace enrichment hook automatically names traces and creates daily sessions in Langfuse.
+Each virtual key should have a descriptive alias (e.g., `claude-code`, `codex`, `openrouter`) so the trace enrichment hook automatically names traces and creates daily sessions in Langfuse.
 
 ## How It Works
-
-Most AI CLI tools and SDKs respect the `*_BASE_URL` and `*_API_KEY` environment variables:
 
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -73,50 +87,23 @@ Most AI CLI tools and SDKs respect the `*_BASE_URL` and `*_API_KEY` environment 
                                           └──────────────┘
 ```
 
-The tool thinks it's talking to OpenAI or Anthropic directly. LiteLLM translates the request to whichever provider is actually configured (Bedrock, Vertex AI, etc.) and Langfuse captures the full trace.
+The tool thinks it's talking to OpenRouter (or OpenAI/Anthropic) directly. LiteLLM translates the request to whichever provider is actually configured (Bedrock, Vertex AI, etc.) and Langfuse captures the full trace.
 
-## Tool-Specific Notes
-
-### Claude Code
-
-Claude Code uses the Anthropic SDK. Set `ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY`, or copy `examples/.claude/settings.json` to `~/.claude/settings.json`.
-
-### Codex (OpenAI CLI)
-
-Codex uses the OpenAI SDK. Set `OPENAI_BASE_URL` and `OPENAI_API_KEY`, or copy `examples/.codex/config.yaml` to `~/.codex/config.yaml`.
-
-### Any OpenAI-Compatible Tool
-
-Any tool that uses the OpenAI SDK (Cursor, Continue, Aider, etc.) will route through the gateway when `OPENAI_BASE_URL` and `OPENAI_API_KEY` are set.
-
-### Python / Node.js SDKs
-
-```python
-# Python — automatically picks up env vars
-from anthropic import Anthropic
-client = Anthropic()  # uses ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY
-
-from openai import OpenAI
-client = OpenAI()  # uses OPENAI_BASE_URL + OPENAI_API_KEY
-```
-
-```typescript
-// Node.js — automatically picks up env vars
-import Anthropic from "@anthropic-ai/sdk";
-const client = new Anthropic(); // uses ANTHROPIC_BASE_URL + ANTHROPIC_API_KEY
-
-import OpenAI from "openai";
-const client = new OpenAI(); // uses OPENAI_BASE_URL + OPENAI_API_KEY
-```
-
-## Verifying the Route
+## Verification
 
 Confirm traffic is flowing through the gateway:
 
 ```bash
-# Check LiteLLM is receiving requests
+# Check env vars are set correctly
+echo $OPENROUTER_BASE_URL   # should be http://localhost:4000/v1
+echo $OPENAI_BASE_URL       # should be http://localhost:4000/v1
+echo $ANTHROPIC_BASE_URL    # should be http://localhost:4000
+
+# Watch LiteLLM logs for incoming requests
 docker compose logs -f gateway-litellm
 
 # Check Langfuse for traces
 open http://localhost:5002
 ```
+
+If a tool still hits OpenRouter directly, check whether it hardcodes the base URL or reads from a config file rather than environment variables — some tools require explicit config overrides.

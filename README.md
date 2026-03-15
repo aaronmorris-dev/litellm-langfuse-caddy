@@ -89,43 +89,6 @@ After `./scripts/start.sh` completes:
 
 <br>
 
-## Features
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>🔀 Multi-Provider Routing</h3>
-      <p>AWS Bedrock, Google Vertex AI, Gemini API, OpenAI, Anthropic — all behind one OpenAI-compatible endpoint. Switch models without changing client code.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🏷️ Per-Tool Virtual Keys</h3>
-      <p>Create a LiteLLM virtual key per tool (Claude Code, Gemini CLI, Codex, etc.). Every request is automatically attributed to the originating tool in Langfuse.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>🪄 Zero-Config Trace Enrichment</h3>
-      <p><code>langfuse_enrich.py</code> runs as a LiteLLM pre-call hook. It maps virtual key metadata → Langfuse trace names, daily sessions, and tags. No client-side headers needed.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>📊 Session Evaluation</h3>
-      <p>LLM-as-judge script evaluates entire sessions on task completion, approach quality, and communication. Scores are posted back to Langfuse for analytics.</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>⚡ SSE Streaming Optimized</h3>
-      <p>Caddy reverse proxy configured with <code>flush_interval -1</code> and 600s response timeouts. Zero buffering delay on streaming LLM responses.</p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🔒 Production Hardened</h3>
-      <p>Memory limits, <code>no-new-privileges</code>, log rotation, graceful shutdown, health checks on every service. UTC timezone enforced on all data stores.</p>
-    </td>
-  </tr>
-</table>
-
-<br>
-
 ## Architecture
 
 ```mermaid
@@ -140,7 +103,7 @@ flowchart TD
         Caddy --> LiteLLM["⚙️ LiteLLM\nUnified LLM Proxy"]
         Caddy --> Langfuse["📊 Langfuse\nObservability"]
 
-        LiteLLM -.->|"OTEL traces"| Langfuse
+        LiteLLM -.->|"traces"| Langfuse
         Worker["⚙️ Langfuse Worker"]
 
         LiteLLM --> PG & Redis
@@ -158,64 +121,73 @@ flowchart TD
 
 <br>
 
-## What's In The Stack
+## Features
+
+- **Multi-provider routing** — Bedrock, Vertex AI, Gemini, OpenAI, and Anthropic behind one endpoint. Switch models without changing your code.
+- **Per-tool tracking** — Give each tool its own virtual key. Every request is automatically tagged to its source in Langfuse.
+- **Automatic trace enrichment** — `langfuse_enrich.py` maps virtual keys to trace names, daily sessions, and tags. No client changes needed.
+- **Session evaluation** — An LLM-as-judge script scores sessions on task completion, approach, and communication.
+- **Zero-buffered streaming** — Caddy delivers tokens instantly with 10-minute response timeouts.
+- **Hardened by default** — Memory limits, health checks, log rotation, and privilege lockdown on every service.
+
+### Services
 
 <table>
   <thead>
     <tr>
       <th>Service</th>
       <th>Image</th>
-      <th>Purpose</th>
-      <th>Exposed Port</th>
+      <th>What it does</th>
+      <th>Port</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><strong>Caddy</strong></td>
       <td><code>caddy:2-alpine</code></td>
-      <td>Reverse proxy with SSE streaming, JSON logging, graceful shutdown</td>
+      <td>Routes traffic to LiteLLM and Langfuse with zero-buffered streaming</td>
       <td><code>:4000</code> <code>:5002</code></td>
     </tr>
     <tr>
       <td><strong>LiteLLM</strong></td>
       <td><code>ghcr.io/berriai/litellm:main-v1.81.14-stable</code></td>
-      <td>Unified LLM proxy — routes to any provider via OpenAI-compatible API</td>
+      <td>Sends requests to any provider through one API — routing, keys, and caching</td>
       <td>—</td>
     </tr>
     <tr>
       <td><strong>Langfuse</strong></td>
       <td><code>langfuse/langfuse:3</code></td>
-      <td>Observability dashboard — traces, sessions, scores, analytics</td>
+      <td>Dashboard for traces, sessions, scores, and usage analytics</td>
       <td>—</td>
     </tr>
     <tr>
       <td><strong>Langfuse Worker</strong></td>
       <td><code>langfuse/langfuse-worker:3</code></td>
-      <td>Background trace ingestion and processing</td>
+      <td>Processes incoming traces in the background</td>
       <td>—</td>
     </tr>
     <tr>
       <td><strong>PostgreSQL</strong></td>
       <td><code>postgres:17-alpine</code></td>
-      <td>Metadata storage for LiteLLM (keys, spend) and Langfuse (projects, users)</td>
+      <td>Stores keys, spend logs, projects, and user data</td>
       <td>—</td>
     </tr>
     <tr>
       <td><strong>ClickHouse</strong></td>
       <td><code>clickhouse/clickhouse-server:26.2</code></td>
-      <td>High-performance columnar storage for Langfuse traces and observations</td>
+      <td>Fast analytics storage for traces and observations</td>
       <td>—</td>
     </tr>
     <tr>
       <td><strong>Redis</strong></td>
       <td><code>redis:7.4-alpine</code></td>
-      <td>LiteLLM response cache (1h TTL) + Langfuse background job queue</td>
+      <td>Response cache and background job queue</td>
       <td>—</td>
     </tr>
     <tr>
       <td><strong>MinIO</strong></td>
       <td><code>cgr.dev/chainguard/minio</code></td>
-      <td>S3-compatible object store for Langfuse event and media uploads</td>
+      <td>Object storage for event logs and media uploads</td>
       <td><code>:9090</code> <code>:9091</code></td>
     </tr>
   </tbody>
@@ -343,12 +315,16 @@ Add to `litellm/config.yaml`:
 
 ## Using the Gateway
 
+### Claude Code skill (built-in)
+
+This repo includes a [Claude Code skill](https://docs.anthropic.com/en/docs/claude-code/skills) at `.claude/commands/llm-ops/gateway/`. Open the project in Claude Code and run `/llm-ops:gateway` to diagnose, install, or configure the stack conversationally. The bundled diagnostic checks Docker, containers, API health, credentials, and environment variables in one pass.
+
 ### Route CLI tools through the proxy
 
 ```bash
 source scripts/gateway-env.sh
 
-# Now any OpenAI/Anthropic SDK-compatible tool routes through LiteLLM:
+# Tools that use the OpenAI or Anthropic SDK now route through LiteLLM:
 # ANTHROPIC_BASE_URL=http://localhost:4000
 # OPENAI_BASE_URL=http://localhost:4000/v1
 ```
@@ -357,32 +333,23 @@ See [`examples/transparent-routing.md`](examples/transparent-routing.md) for per
 
 ### How trace enrichment works
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Virtual Key: alias="claude", tags=["claude"], user_id="alice" │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-              ┌─────────────────────────┐
-              │   langfuse_enrich.py    │
-              │   (LiteLLM pre-call)    │
-              └─────────────────────────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-        trace_name    session_id      tags
-        "claude"    "claude-2026-03-14" ["claude"]
+```mermaid
+flowchart LR
+    Key["🔑 Virtual Key\nalias · tags · user_id"] --> Enrich["langfuse_enrich.py\nRuns on every request"]
+    Enrich --> Name["Trace Name\nclaude"]
+    Enrich --> Session["Daily Session\nclaude-2026-03-14"]
+    Enrich --> Tags["Tags\n[claude]"]
 ```
 
-Create virtual keys in [LiteLLM Admin](http://localhost:4000/ui) with:
+Create virtual keys in [LiteLLM Admin](http://localhost:4000/ui):
 
-| Field     | Example                | Langfuse Result          |
-| --------- | ---------------------- | ------------------------ |
-| Key Alias | `claude`               | Trace name: `claude`     |
-| User ID   | `alice`                | Trace userId: `alice`    |
-| Metadata  | `{"tags": ["claude"]}` | Trace tags: `["claude"]` |
+| What you set  | Example                | What shows in Langfuse |
+| ------------- | ---------------------- | ---------------------- |
+| Key Alias     | `claude`               | Trace name: `claude`   |
+| User ID       | `alice`                | User: `alice`          |
+| Metadata tags | `{"tags": ["claude"]}` | Tags: `["claude"]`     |
 
-The enrichment hook auto-generates **daily sessions** (`claude-2026-03-14`) grouping all traces from the same tool on the same day. Clients can override with a `langfuse_session_id` header.
+The enrichment hook automatically groups traces into **daily sessions** (e.g., `claude-2026-03-14`) — one per tool per day.
 
 <br>
 
@@ -452,25 +419,25 @@ docker compose ps          # Check service status
 
 ## Hardening Details
 
-Every service in the stack is configured with defense-in-depth:
+Every service is locked down by default:
 
-| Control               | Applied To                                        | Detail                                                    |
-| --------------------- | ------------------------------------------------- | --------------------------------------------------------- |
-| `mem_limit`           | All 8 services                                    | Prevents runaway memory (128m–1536m per service)          |
-| `no-new-privileges`   | All 8 services                                    | Blocks privilege escalation inside containers             |
-| `read_only: true`     | Caddy                                             | Immutable root filesystem with tmpfs for runtime data     |
-| `init: true`          | LiteLLM, Langfuse, Worker, MinIO                  | Proper PID 1 signal handling via tini                     |
-| `TZ=UTC` / `PGTZ=UTC` | PostgreSQL, ClickHouse                            | Prevents timezone-related query failures                  |
-| Log rotation          | All 8 services                                    | json-file driver with 5–20MB max-size, 3–5 file retention |
-| Health checks         | 6 of 8 services                                   | HTTP/TCP probes with start_period, retries, and intervals |
-| `stop_grace_period`   | LiteLLM (30s), Langfuse (15s), PG (30s), CH (15s) | Clean shutdown for stateful services                      |
-| `127.0.0.1` binding   | Caddy, MinIO                                      | Ports only accessible from localhost                      |
+| What                 | Where                                             | Why                                                          |
+| -------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| Memory limits        | All 8 services                                    | Each service capped (128 MB – 1.5 GB) to prevent runaway use |
+| Privilege lockdown   | All 8 services                                    | Containers cannot escalate permissions                       |
+| Read-only filesystem | Caddy                                             | Root filesystem is immutable; temp storage for runtime data  |
+| Process management   | LiteLLM, Langfuse, Worker, MinIO                  | Clean signal handling via tini                               |
+| UTC everywhere       | PostgreSQL, ClickHouse                            | All timestamps in UTC — no timezone surprises                |
+| Log rotation         | All 8 services                                    | 5–20 MB per log file, 3–5 files kept                         |
+| Health checks        | 6 of 8 services                                   | Automatic probes with retries and startup grace periods      |
+| Graceful shutdown    | LiteLLM (30s), Langfuse (15s), PG (30s), CH (15s) | Services finish in-flight work before stopping               |
+| Localhost only       | Caddy, MinIO                                      | Exposed ports bound to 127.0.0.1 — not reachable externally  |
 
 <br>
 
 ## Prerequisites
 
-- [OrbStack](https://orbstack.dev/) (recommended) — lightweight Docker runtime for macOS with lower memory overhead, faster container starts, and native Rosetta x86 emulation. Any Docker-compatible runtime works, but OrbStack is ideal for this 8-service stack.
+- [OrbStack](https://orbstack.dev/) (recommended) or any Docker-compatible runtime — OrbStack uses less memory and starts faster, which helps with an 8-service stack
 - ~4 GB RAM available for containers
 - Credentials for at least one LLM provider
 
@@ -480,24 +447,28 @@ Every service in the stack is configured with defense-in-depth:
 
 ```
 .
-├── docker-compose.yaml          # 8-service stack definition
-├── Caddyfile                    # Reverse proxy config (SSE, timeouts, logging)
-├── .env.example                 # All required environment variables
+├── .claude/commands/llm-ops/gateway/  # Claude Code skill (diagnose, install, configure)
+│   ├── SKILL.md                       # Skill definition and instructions
+│   ├── scripts/diagnose.sh            # Automated diagnostic cascade
+│   └── references/topology.md         # Service topology and known issues
+├── docker-compose.yaml                # 8-service stack definition
+├── Caddyfile                          # Reverse proxy config (SSE, timeouts, logging)
+├── .env.example                       # All required environment variables
 ├── litellm/
-│   ├── config.example.yaml      # LiteLLM model config template
-│   └── langfuse_enrich.py       # Trace enrichment hook (auto-loaded by LiteLLM)
+│   ├── config.example.yaml            # LiteLLM model config template
+│   └── langfuse_enrich.py             # Trace enrichment hook (auto-loaded by LiteLLM)
 ├── examples/
-│   ├── .claude/settings.json    # Claude Code proxy config
-│   ├── .codex/config.yaml       # Codex CLI proxy config
-│   └── transparent-routing.md   # Guide: route any tool through the gateway
+│   ├── .claude/settings.json          # Claude Code proxy config
+│   ├── .codex/config.yaml             # Codex CLI proxy config
+│   └── transparent-routing.md         # Guide: route any tool through the gateway
 └── scripts/
-    ├── start.sh                 # Startup with validation
-    ├── stop.sh                  # Graceful shutdown
-    ├── gateway-env.sh           # Source to route tools through the proxy
-    ├── refresh-credentials.sh   # Check/refresh provider credentials
-    ├── prune-postgres.sh        # Data retention maintenance
-    ├── prune-postgres.sql       # PostgreSQL pruning policy
-    └── eval-session.py          # LLM-as-judge session evaluation
+    ├── start.sh                       # Startup with validation
+    ├── stop.sh                        # Graceful shutdown
+    ├── gateway-env.sh                 # Source to route tools through the proxy
+    ├── refresh-credentials.sh         # Check/refresh provider credentials
+    ├── prune-postgres.sh              # Data retention maintenance
+    ├── prune-postgres.sql             # PostgreSQL pruning policy
+    └── eval-session.py                # LLM-as-judge session evaluation
 ```
 
 <br>
