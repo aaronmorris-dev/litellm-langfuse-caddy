@@ -482,8 +482,8 @@ Every service in the stack is configured with defense-in-depth:
 
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/), [OrbStack](https://orbstack.dev/), or any Docker-compatible runtime
-- ~4 GB RAM available for Docker
+- [OrbStack](https://orbstack.dev/) (recommended) — lightweight Docker runtime for macOS with lower memory overhead, faster container starts, and native Rosetta x86 emulation. Any Docker-compatible runtime works, but OrbStack is ideal for this 8-service stack.
+- ~4 GB RAM available for containers
 - Credentials for at least one LLM provider
 
 <br>
