@@ -6,4 +6,4 @@ cd "$SCRIPT_DIR"
 echo "Stopping LiteLLM / Langfuse..."
 docker compose down
 
-echo "Stack stopped."
+echo "LiteLLM / Langfuse stopped."
