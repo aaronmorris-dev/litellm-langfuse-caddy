@@ -1,0 +1,9 @@
+# Codex CLI configuration for LiteLLM gateway
+# Copy to ~/.codex/config.yaml
+
+model: claude-sonnet-4-6
+provider: openai
+providers:
+  openai:
+    baseURL: "http://localhost:4000/v1"
+    apiKey: "sk-your-litellm-virtual-key"

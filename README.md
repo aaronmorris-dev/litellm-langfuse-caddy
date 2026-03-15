@@ -353,6 +353,8 @@ source scripts/gateway-env.sh
 # OPENAI_BASE_URL=http://localhost:4000/v1
 ```
 
+See [`examples/transparent-routing.md`](examples/transparent-routing.md) for permanent shell setup, per-tool virtual keys, and SDK examples. Tool-specific config examples are in [`examples/.claude/`](examples/.claude/) and [`examples/.codex/`](examples/.codex/).
+
 ### How trace enrichment works
 
 ```
@@ -438,8 +440,8 @@ Checks AWS SSO session and GCloud ADC token, refreshing expired credentials inte
 <br>
 
 ```bash
-docker compose down        # Stop all services
-docker compose up -d       # Start all services
+./scripts/start.sh         # Start all services (with validation)
+./scripts/stop.sh          # Stop all services
 docker compose logs -f     # Follow all logs
 docker compose ps          # Check service status
 ```
@@ -484,8 +486,13 @@ Every service in the stack is configured with defense-in-depth:
 ├── litellm/
 │   ├── config.example.yaml      # LiteLLM model config template
 │   └── langfuse_enrich.py       # Trace enrichment hook (auto-loaded by LiteLLM)
+├── examples/
+│   ├── .claude/settings.json    # Claude Code proxy config
+│   ├── .codex/config.yaml       # Codex CLI proxy config
+│   └── transparent-routing.md   # Guide: route any tool through the gateway
 └── scripts/
     ├── start.sh                 # Startup with validation
+    ├── stop.sh                  # Graceful shutdown
     ├── gateway-env.sh           # Source to route tools through the proxy
     ├── refresh-credentials.sh   # Check/refresh provider credentials
     ├── prune-postgres.sh        # Data retention maintenance
