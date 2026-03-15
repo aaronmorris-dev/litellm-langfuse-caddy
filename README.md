@@ -2,7 +2,7 @@
 
 <h1>litellm-langfuse-caddy</h1>
 
-<p><strong>Production-ready local AI gateway with full observability</strong></p>
+<p><strong>Local AI gateway with full observability</strong></p>
 
 <p>Route all your LLM traffic through a single proxy with automatic tracing,<br>per-tool attribution, and session evaluation.</p>
 
