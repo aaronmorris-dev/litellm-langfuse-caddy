@@ -31,9 +31,11 @@ class LangfuseEnrichHook(CustomLogger):
         if not alias:
             return None
 
-        # Map key user_id → Langfuse userId
+        key_meta = getattr(user_api_key_dict, "metadata", None) or {}
+
+        # Map key user_id → Langfuse userId (top-level, then metadata fallback)
         if not metadata.get("trace_user_id"):
-            uid = getattr(user_api_key_dict, "user_id", None)
+            uid = getattr(user_api_key_dict, "user_id", None) or key_meta.get("user_id")
             if uid:
                 metadata["trace_user_id"] = uid
 
@@ -48,12 +50,10 @@ class LangfuseEnrichHook(CustomLogger):
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             metadata["session_id"] = f"{alias}-{today}"
 
-        # Propagate key-level tags (e.g. ["opencode"]) → Langfuse trace tags
-        key_meta = getattr(user_api_key_dict, "metadata", None) or {}
-        key_tags = key_meta.get("tags", [])
-        if key_tags:
-            existing = metadata.get("tags", [])
-            metadata["tags"] = list({*existing, *key_tags})
+        # Propagate tags (explicit from key metadata, or auto-generate from alias)
+        key_tags = key_meta.get("tags") or [alias]
+        existing = metadata.get("tags", [])
+        metadata["tags"] = list({*existing, *key_tags})
 
         return None
 

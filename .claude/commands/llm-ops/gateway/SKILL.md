@@ -217,7 +217,7 @@ Read `references/topology.md` for the full service map and known issues.
 
 | Symptom                | Cause                          | Fix                                         |
 | ---------------------- | ------------------------------ | ------------------------------------------- |
-| All containers missing | Docker/OrbStack not running    | Start OrbStack app or `colima start`        |
+| All containers missing | Docker/OrbStack not running    | Start OrbStack app                          |
 | Container "unhealthy"  | Service failed health check    | `docker logs gateway-<name>` for details    |
 | Postgres won't start   | Port conflict or corrupt data  | Check `docker logs gateway-postgres`        |
 | LiteLLM restarts       | Bad config.yaml or missing env | `docker logs gateway-litellm --tail 50`     |
