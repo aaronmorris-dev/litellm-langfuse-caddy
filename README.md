@@ -99,12 +99,12 @@ Claude Code · Gemini CLI · OpenAI SDK"]
     CLI -->|":4000 · :5002"| Caddy
 
     subgraph compose[" Docker Compose Stack "]
-        Caddy["🔀 Caddy
+        Caddy["Caddy
 Reverse Proxy · SSE"]
 
-        Caddy --> LiteLLM["⚙️ LiteLLM
+        Caddy --> LiteLLM["LiteLLM
 Unified LLM Proxy"]
-        Caddy --> Langfuse["📊 Langfuse
+        Caddy --> Langfuse["Langfuse
 Observability"]
 
         LiteLLM -.->|"traces"| Langfuse
@@ -113,14 +113,14 @@ Observability"]
         LiteLLM --> PG & Redis
         Langfuse & Worker --> PG & CH & Redis & MinIO
 
-        PG[("PostgreSQL 17")]
-        CH[("ClickHouse 26")]
-        Redis[("Redis 7.4")]
+        PG[("PostgreSQL")]
+        CH[("ClickHouse")]
+        Redis[("Redis")]
         MinIO[("MinIO")]
         PG ~~~ CH ~~~ Redis ~~~ MinIO
     end
 
-    LiteLLM --> Providers["☁️ Bedrock · Vertex AI · Gemini · OpenAI · Anthropic"]
+    LiteLLM --> Providers["Bedrock · Vertex AI · Gemini · OpenAI · Anthropic"]
 ```
 
 <br>
@@ -339,7 +339,7 @@ See [`examples/transparent-routing.md`](examples/transparent-routing.md) for per
 
 ```mermaid
 flowchart LR
-    Key["🔑 Virtual Key alias · tags · user_id"] --> Enrich["langfuse_enrich.py
+    Key["Virtual Key alias · tags · user_id"] --> Enrich["langfuse_enrich.py
 Runs on every request"]
     Enrich --> Name["Trace Name
 claude"]
